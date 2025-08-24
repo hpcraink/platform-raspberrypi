@@ -22,7 +22,6 @@ env = DefaultEnvironment()
 
 env.Append(
     ASFLAGS=[
-        "-mthumb",
     ],
     ASPPFLAGS=[
         "-x", "assembler-with-cpp",
@@ -33,7 +32,6 @@ env.Append(
         "-ffunction-sections",  # place each function in its own section
         "-fdata-sections",
         "-Wall",
-        "-mthumb",
         "-nostdlib"
     ],
 
@@ -49,7 +47,6 @@ env.Append(
     LINKFLAGS=[
         "-Os",
         "-Wl,--gc-sections,--relax",
-        "-mthumb",
         "--specs=nano.specs",
         "--specs=nosys.specs"
     ],
@@ -62,23 +59,29 @@ if "BOARD" in env:
     mcu = env.BoardConfig().get("build.mcu", "")
     if mcu == "rp2350":
         more_flags = [
+            "-mcpu=%s" % env.BoardConfig().get("build.cpu"),
             "-march=armv8-m.main+fp+dsp",
+            "-mthumb",
             "-mfloat-abi=hard",
             "-mcmse",
+            "-mthumb"
         ]
-    if mcu == "rp2350-riscv":
+    elif mcu == "rp2040":
         more_flags = [
-            "-march=rv32imac_zicsr_zifencei_zba_zbb_zbs_zbkb",
+            "-mcpu=%s" % env.BoardConfig().get("build.cpu"),
+            "-mthumb",
+        ]
+    elif mcu == "rp2350-riscv":
+        more_flags = [
+            # special value as supported by our RISC-V toolchain. No -mcpu.
+            "-march=rv32imac_zicsr_zifencei_zba_zbb_zbc_zbs_zbkb_zcb_zcmp",
             "-mabi=ilp32"
         ]
     env.Append(
-        ASFLAGS=[
-            "-mcpu=%s" % env.BoardConfig().get("build.cpu")
-        ] + more_flags,
-        CCFLAGS=[
-            "-mcpu=%s" % env.BoardConfig().get("build.cpu")
-        ] + more_flags,
-        LINKFLAGS=[
-            "-mcpu=%s" % env.BoardConfig().get("build.cpu")
-        ] + more_flags
+        ASFLAGS=more_flags,
+        CCFLAGS=more_flags,
+        LINKFLAGS=more_flags
     )
+
+    if mcu == "rp2350-riscv":
+        env.Append(LINKFLAGS=["-Wl,--no-warn-rwx-segments"])
